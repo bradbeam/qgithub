@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
 var searchPhrase = flag.String("search", "", "search string")
@@ -83,7 +84,7 @@ func main() {
 		for _, v := range results.Items {
 			writer.WriteString(fmt.Sprintf("%s %s\n", "#", v.Name))
 			writer.WriteString(fmt.Sprintf("[%s](%s)\n", v.Path, v.HtmlURL))
-			writer.WriteString(fmt.Sprintln("```go"))
+			writer.WriteString(fmt.Sprintln("```" + strings.Split(*language, ":")[1]))
 			writer.WriteString(fmt.Sprintln(v.TextMatches[0].Fragment))
 			writer.WriteString(fmt.Sprintln("```"))
 		}
