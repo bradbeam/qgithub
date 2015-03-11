@@ -10,14 +10,17 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
 var searchPhrase = flag.String("search", "", "search string")
 var oauthToken = flag.String("oauth", "", "oauth token")
 var org = flag.String("org", "", "github user or org to search")
-var markdown = flag.Bool("markdown", false, "render a markdown output file ( /tmp/searchResults.md )")
+var file = flag.String("file", "/tmp/searchResults.md", "Output file to use with -markdown, defaults to /tmp/searchResults.md")
+var markdown = flag.Bool("markdown", false, "render a markdown output file")
 var language = flag.String("lang", "", "language to search for")
+var perPage = flag.Int("pp", 30, "number of results to grab, default 30, max 100")
 
 func main() {
 	flag.Parse()
@@ -45,6 +48,7 @@ func main() {
 		log.Fatal(err)
 	}
 	q := u.Query()
+	q.Set("per_page", strconv.Itoa(*perPage))
 	q.Set("q", *searchPhrase)
 	u.RawQuery = q.Encode()
 	u, err = url.Parse(u.String() + *language + *org + "+in:file")
@@ -75,7 +79,7 @@ func main() {
 	}
 
 	if *markdown == true {
-		output, err := os.Create("/tmp/searchResults.md")
+		output, err := os.Create(*file)
 		defer output.Close()
 		if err != nil {
 			log.Fatal(err)
@@ -84,9 +88,12 @@ func main() {
 		for _, v := range results.Items {
 			writer.WriteString(fmt.Sprintf("%s %s\n", "#", v.Name))
 			writer.WriteString(fmt.Sprintf("[%s](%s)\n", v.Path, v.HtmlURL))
-			writer.WriteString(fmt.Sprintln("```" + strings.Split(*language, ":")[1]))
-			writer.WriteString(fmt.Sprintln(v.TextMatches[0].Fragment))
-			writer.WriteString(fmt.Sprintln("```"))
+			for k, v2 := range v.TextMatches {
+				writer.WriteString(fmt.Sprintf("### %s %d\n", "Match", k+1))
+				writer.WriteString(fmt.Sprintln("```" + strings.Split(*language, ":")[1]))
+				writer.WriteString(fmt.Sprintln(v2.Fragment))
+				writer.WriteString(fmt.Sprintln("```"))
+			}
 		}
 		writer.Flush()
 	} else {
@@ -94,7 +101,10 @@ func main() {
 			fmt.Println("=============================================")
 			fmt.Printf("%s | %s\n", v.Name, v.Path)
 			fmt.Println(v.HtmlURL)
-			fmt.Println(v.TextMatches[0].Fragment)
+			for _, v2 := range v.TextMatches {
+				fmt.Println("--------------------------------------------")
+				fmt.Println(v2.Fragment)
+			}
 		}
 	}
 }
