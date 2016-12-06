@@ -23,6 +23,8 @@ var language = flag.String("lang", "", "language to search for")
 var perPage = flag.Int("pp", 30, "number of results to grab, default 30, max 100")
 
 func main() {
+	searchargs := []string{"+in:file"}
+
 	flag.Parse()
 
 	if *oauthToken == "" {
@@ -32,13 +34,13 @@ func main() {
 	if *searchPhrase == "" {
 		log.Fatal("Need to specify a search phrase with -search")
 	}
-	if *org == "" {
-		log.Fatal("Need to specify an org with -org")
-	} else {
-		*org = "+user:" + *org
+
+	if *org != "" {
+		searchargs = append(searchargs, "user:"+*org)
 	}
+
 	if *language != "" {
-		*language = "+language:" + *language
+		searchargs = append(searchargs, "language:"+*language)
 	}
 
 	// Doing this weird thing to encode the query string to be safe
@@ -51,7 +53,7 @@ func main() {
 	q.Set("per_page", strconv.Itoa(*perPage))
 	q.Set("q", *searchPhrase)
 	u.RawQuery = q.Encode()
-	u, err = url.Parse(u.String() + *language + *org + "+in:file")
+	u, err = url.Parse(u.String() + strings.Join(searchargs, "+"))
 	if err != nil {
 		log.Fatal(err)
 	} else {
